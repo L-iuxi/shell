@@ -6,6 +6,9 @@
 #include <sys/types.h>
 #include <signal.h>
 #include <fcntl.h>
+#include <pwd.h>
+#include <grp.h>
+
 
 char prev_dir[1024]; // 用于保存上一个目录
 
@@ -143,21 +146,55 @@ void zhixing(char **args, char *infile, char *outfile, char *append)
 void cd_command(char *dir)
 {
     char current_dir[1024];
+
     if (getcwd(current_dir, sizeof(current_dir)) != NULL)
     {
-        if (strcmp(dir, "-") == 0) // cd -
+    
+        if (dir == NULL || strcmp(dir, "") == 0)//cd
         {
-            if (chdir(prev_dir) == -1)
+            
+            printf("当前目录为: %s\n", current_dir);
+        }else if(strcmp(dir,"-") == 0)
+        {
+             // 获取 HOME 环境变量
+            const char *home_dir = getenv("HOME");
+            if (home_dir == NULL)
+            {
+                fprintf(stderr, "HOME environment variable is not set\n");
+                return;
+            }
+
+           
+            if (chdir(home_dir) == -1)
             {
                 perror("cd failed");
             }
             else
             {
-                strcpy(prev_dir, current_dir); 
+                
+                strcpy(prev_dir, current_dir);
+                printf("%s\n", home_dir);
             }
         }
+    
+       
+        
+        // else if (strcmp(dir, "-") == 0) // cd -
+        // {
+           
+        //     if (chdir(prev_dir) == -1)
+        //     {
+        //         perror("cd failed");
+        //     }
+        //     else
+        //     {
+        //         printf("当前目录为: %s\n", current_dir);
+        //         strcpy(prev_dir, current_dir); 
+        //     }
+        // }
         else
         {
+           
             if (chdir(dir) == -1)
             {
                 perror("cd failed");
@@ -165,10 +202,10 @@ void cd_command(char *dir)
             else
             {
                 strcpy(prev_dir, current_dir); 
+                printf("Current directory is: %s\n", dir);
             }
-        }
-    }
-    else
+        } 
+    }else
     {
         perror("getcwd failed");
     }
@@ -268,10 +305,51 @@ int main(int argc, char *argv[])
 {
     signal(SIGINT, handle_sigint);
     char input[100];
+    
+    uid_t use = getuid();
+    gid_t group = getgid();
+    struct passwd *pw = getpwuid(use);
+    struct group *gr = getgrgid(group);
+
+    char cwd[10086];
+    if(getcwd(cwd,sizeof(cwd)) == NULL)
+    {
+        perror("getcwd() error");
+        return 1;
+    }
+
+    char *home = getenv("HOME");
+    char display_cwd[10086];
+
+   //～
+    if (strncmp(cwd, home, strlen(home)) == 0) {
+        
+        snprintf(display_cwd, sizeof(display_cwd), "~%s", cwd + strlen(home));
+    } else {
+       
+        snprintf(display_cwd, sizeof(display_cwd), "%s", cwd);
+    }
+
 
     while (1)
     {
-        printf("\033[32mSHELL> \033[0m");
+        //printf("\033[35");
+        //printf("%s%s",use,group);
+        //printf("\033[0m");
+        if(pw != NULL && gr != NULL)
+        {
+            printf("\033[34m");
+            printf("%s",pw->pw_name);
+            printf("\033[0m");
+            
+            printf("@");
+             printf("\033[34m");
+            printf("%s",gr->gr_name);
+            printf("\033[32m");
+            printf(" %s ",display_cwd);
+            printf("\033[0m");
+            printf("$");
+        }
 
         if (fgets(input, 100, stdin) == NULL)
         {
