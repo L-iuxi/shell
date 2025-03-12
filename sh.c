@@ -152,12 +152,7 @@ void cd_command(char *dir)
     
         if (dir == NULL || strcmp(dir, "") == 0)//cd
         {
-            
-            printf("当前目录为: %s\n", current_dir);
-        }else if(strcmp(dir,"-") == 0)
-        {
-             // 获取 HOME 环境变量
-            const char *home_dir = getenv("HOME");
+             const char *home_dir = getenv("HOME");
             if (home_dir == NULL)
             {
                 fprintf(stderr, "HOME environment variable is not set\n");
@@ -174,6 +169,29 @@ void cd_command(char *dir)
                 
                 strcpy(prev_dir, current_dir);
                 printf("%s\n", home_dir);
+            }
+            
+           // printf("当前目录为: %s\n", current_dir);
+        }else if(strcmp(dir,"-") == 0)
+        {
+             if (prev_dir[0] == '\0')  
+            {
+                fprintf(stderr, "No previous directory to return to\n");
+                return;
+            }
+
+            if (chdir(prev_dir) == -1)
+            {
+                perror("cd failed");
+            }
+            else
+            {
+               
+                getcwd(current_dir, sizeof(current_dir));
+                printf("返回上一层目录: %s\n", current_dir);
+                
+               
+                strcpy(prev_dir, current_dir);
             }
         }
     
@@ -311,7 +329,29 @@ int main(int argc, char *argv[])
     struct passwd *pw = getpwuid(use);
     struct group *gr = getgrgid(group);
 
-    char cwd[10086];
+//     char cwd[10086];
+//     if(getcwd(cwd,sizeof(cwd)) == NULL)
+//     {
+//         perror("getcwd() error");
+//         return 1;
+//     }
+
+//     char *home = getenv("HOME");
+//     char new_cwd[10086];
+
+//    //～
+//     if (strncmp(cwd, home, strlen(home)) == 0) {
+        
+//         snprintf(new_cwd, sizeof(new_cwd), "~%s", cwd + strlen(home));
+//     } else {
+       
+//         snprintf(new_cwd, sizeof(new_cwd), "%s", cwd);
+//     }
+
+
+    while (1)
+    {
+        char cwd[10086];
     if(getcwd(cwd,sizeof(cwd)) == NULL)
     {
         perror("getcwd() error");
@@ -319,20 +359,16 @@ int main(int argc, char *argv[])
     }
 
     char *home = getenv("HOME");
-    char display_cwd[10086];
+    char new_cwd[10086];
 
    //～
     if (strncmp(cwd, home, strlen(home)) == 0) {
         
-        snprintf(display_cwd, sizeof(display_cwd), "~%s", cwd + strlen(home));
+        snprintf(new_cwd, sizeof(new_cwd), "~%s", cwd + strlen(home));
     } else {
        
-        snprintf(display_cwd, sizeof(display_cwd), "%s", cwd);
+        snprintf(new_cwd, sizeof(new_cwd), "%s", cwd);
     }
-
-
-    while (1)
-    {
         //printf("\033[35");
         //printf("%s%s",use,group);
         //printf("\033[0m");
@@ -346,7 +382,7 @@ int main(int argc, char *argv[])
              printf("\033[34m");
             printf("%s",gr->gr_name);
             printf("\033[32m");
-            printf(" %s ",display_cwd);
+            printf(" %s ",new_cwd);
             printf("\033[0m");
             printf("$");
         }
